@@ -438,9 +438,15 @@ def main():
         # MCP SDK v2 configures HTTP transport options when starting the server.
         if MCP_TRANSPORT == "stdio":
             mcp.run(transport="stdio")
+        elif MCP_TRANSPORT == "sse":
+            mcp.run(
+                transport="sse",
+                host=os.getenv("MCP_LISTEN_HOST", "127.0.0.1"),
+                port=int(os.getenv("MCP_LISTEN_PORT", "5001")),
+            )
         else:
             mcp.run(
-                transport=MCP_TRANSPORT,
+                transport="streamable-http",
                 host=os.getenv("MCP_LISTEN_HOST", "127.0.0.1"),
                 port=int(os.getenv("MCP_LISTEN_PORT", "5001")),
                 stateless_http=True,
