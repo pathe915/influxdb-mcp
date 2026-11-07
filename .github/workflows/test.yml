@@ -1,0 +1,23 @@
+name: MCP SDK v2 tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - fix/mcp-sdk-v2-tunnel
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Set up Python
+        run: uv python install 3.12
+      - name: Check locked dependencies
+        run: uv lock --check --python 3.12
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev --python 3.12
+      - name: Run regression tests
+        run: uv run --no-sync pytest -o addopts= -q tests/
