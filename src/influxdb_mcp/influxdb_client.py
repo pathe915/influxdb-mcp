@@ -166,8 +166,14 @@ class InfluxDBManager:
             if not self._buckets_api:
                 raise RuntimeError("Buckets API not available")
 
-            # Use provided org_name or default to configured org
-            buckets = self._buckets_api.find_buckets_iter(org=self.config.org)
+            # INFLUXDB_ORG accepts an organization name or ID for Flux queries.
+            # The Buckets API distinguishes `org` (name) from `org_id` (ID).
+            org_filter = (
+                {"org_id": self.config.org}
+                if len(self.config.org) == 16 and all(c in "0123456789abcdefABCDEF" for c in self.config.org)
+                else {"org": self.config.org}
+            )
+            buckets = self._buckets_api.find_buckets_iter(**org_filter)
             bucket_list = []
 
             for bucket in buckets:
