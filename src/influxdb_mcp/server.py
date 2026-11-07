@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -19,8 +19,8 @@ from .influxdb_client import InfluxDBManager
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize FastMCP server
-mcp = FastMCP(
+# Initialize MCP server
+mcp = MCPServer(
     name="influxdb-mcp",
     instructions="""This MCP server provides read-only access to InfluxDB v2 databases.
 
@@ -36,11 +36,8 @@ All operations are read-only for security. Use the available tools to explore
 time-series data, perform analytics, and monitor your InfluxDB metrics. The
 server also provides resource templates for common Flux query patterns like
 anomaly detection, correlation analysis, and threshold monitoring.""",
-    stateless_http=True,
     description="MCP server providing read-only access to InfluxDB v2 databases",
 )
-mcp.settings.host = os.getenv("MCP_LISTEN_HOST", "127.0.0.1")
-mcp.settings.port = int(os.getenv("MCP_LISTEN_PORT", "5001"))  # Default to port 5001 if not set
 MCP_TRANSPORT = os.getenv("MCP_TRANSPORT", "streamable-http").lower()
 if MCP_TRANSPORT not in ["sse", "streamable-http", "stdio"]:
     raise ValueError(
@@ -438,8 +435,16 @@ def main():
             logger.error(f"Failed to initialize InfluxDB connection: {e}")
             logger.warning("Server will start but InfluxDB operations may fail")
 
-        # Start the FastMCP server
-        mcp.run(transport=MCP_TRANSPORT)  # type: ignore
+        # MCP SDK v2 configures HTTP transport options when starting the server.
+        if MCP_TRANSPORT == "stdio":
+            mcp.run(transport="stdio")
+        else:
+            mcp.run(
+                transport=MCP_TRANSPORT,
+                host=os.getenv("MCP_LISTEN_HOST", "127.0.0.1"),
+                port=int(os.getenv("MCP_LISTEN_PORT", "5001")),
+                stateless_http=True,
+            )
 
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
